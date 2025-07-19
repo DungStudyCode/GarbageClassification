@@ -1,0 +1,80 @@
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Hệ thống phân loại rác thải AI</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div class="container">
+            <h1>♻️ Phân loại rác thải thông minh bằng AI ♻️</h1>
+            <p>Vui lòng tải lên hình ảnh rác thải để hệ thống tự động phân loại giúp bạn.</p>
+
+            <!-- Hiển thị các thông báo từ Flask (ví dụ: lỗi upload) -->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-message">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" name="file" id="imageUpload" accept="image/*" required>
+                <input type="submit" value="Phân loại ngay!">
+            </form>
+
+            <!-- Container for image preview -->
+            <!-- Conditionally display based on whether an image URL is provided by Flask -->
+            <div class="image-preview-container" id="imagePreviewContainer" style="{% if uploaded_image_url %}display: block;{% else %}display: none;{% endif %}">
+                <!-- Set image source from Flask variable if available, otherwise use placeholder -->
+                <img id="imagePreview" src="{{ uploaded_image_url if uploaded_image_url else '#' }}" alt="Xem trước ảnh">
+            </div>
+
+            <!-- Hiển thị kết quả dự đoán sau khi xử lý ảnh -->
+            {% if prediction %}
+                <div class="result">
+                    <p>Loại rác được nhận diện: <strong>{{ prediction }}</strong></p>
+                    <p>Độ tin cậy của mô hình: <strong>{{ confidence }}</strong></p>
+                </div>
+            {% endif %}
+        </div>
+
+        <script>
+            // Lấy các phần tử DOM cần thiết
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+
+            // Lắng nghe sự kiện 'change' trên input file
+            imageUpload.addEventListener('change', function(event) {
+                const file = event.target.files[0]; // Lấy file đầu tiên được chọn
+
+                if (file) {
+                    const reader = new FileReader(); // Tạo đối tượng FileReader
+
+                    // Khi FileReader đọc xong file
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result; // Đặt nguồn ảnh cho thẻ <img>
+                        imagePreviewContainer.style.display = 'block'; // Hiển thị container ảnh
+                    };
+
+                    // Đọc file dưới dạng URL dữ liệu (base64)
+                    reader.readAsDataURL(file);
+                } else {
+                    // Nếu không có file nào được chọn, ẩn preview
+                    imagePreview.src = '#';
+                    imagePreviewContainer.style.display = 'none';
+                }
+            });
+
+            // Khi trang tải lại sau khi submit, nếu có kết quả, đảm bảo preview hiển thị
+            // (Điều này được xử lý bởi Jinja2 trong style attribute của image-preview-container)
+            // Nếu có uploaded_image_url từ Flask, nó sẽ được hiển thị.
+            // Nếu người dùng chọn file mới, JavaScript sẽ ghi đè lên.
+        </script>
+    </body>
+    </html>
