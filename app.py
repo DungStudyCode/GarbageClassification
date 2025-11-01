@@ -8,6 +8,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, sen
 #flash: Hiển thị thông báo (message) tạm thời cho người dùng
 #send_from_directory: Gửi file từ thư mục cụ thể (thường dùng để hiển thị ảnh, file tải về, v.v.)
 
+import base64
+import io
+from flask import jsonify # Thêm jsonify để trả về dữ liệu JSON trong route webcam
+
 from werkzeug.utils import secure_filename #Làm sạch tên file người dùng upload để tránh lỗi hoặc lỗ hổng bảo mật (loại bỏ ký tự đặc biệt, dấu)
 import numpy as np #Thư viện toán học mạnh mẽ cho xử lý ma trận, số học, mảng số hiệu quả
 from PIL import Image #Dùng để xử lý hình ảnh (mở, chuyển kích thước, chuyển đổi định dạng)
@@ -142,6 +146,61 @@ def upload_file():
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
     print(f"Đã tạo thư mục '{app.config['UPLOAD_FOLDER']}'.")
+    
+    
+# --- Tuyến đường mới để xử lý dự đoán từ webcam (AJAX) ---
+@app.route('/predict_cam', methods=['POST'])
+def predict_cam():
+    # Nhận dữ liệu JSON từ request
+    data = request.get_json()
+    if 'image' not in data:
+        return jsonify({'error': 'Không tìm thấy dữ liệu ảnh'}), 400
+
+    try:
+        # Lấy chuỗi Base64 (loại bỏ phần "data:image/jpeg;base64,")
+        image_data_base64 = data['image'].split(',')[1]
+        
+        # Giải mã Base64 về dạng bytes
+        image_bytes = base64.b64decode(image_data_base64)
+        
+        # Tạo một file ảnh tạm thời trong bộ nhớ
+        image = Image.open(io.BytesIO(image_bytes))
+
+        # --- Tái sử dụng code xử lý của bạn ---
+        # Chúng ta cần lưu ảnh này lại để hàm preprocess_image có thể đọc được
+        # (Hoặc bạn có thể sửa hàm preprocess_image để nhận PIL Image object)
+        # Cách 1: Lưu tạm thời (đơn giản nhất)
+        temp_filename = "webcam_capture.jpg"
+        temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+        
+        # Đảm bảo ảnh là RGB trước khi lưu
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+            
+        image.save(temp_filepath)
+
+        # Kiểm tra xem mô hình đã được tải chưa
+        if model is None:
+            return jsonify({'error': 'Mô hình AI chưa được tải'}), 500
+
+        # Tiền xử lý ảnh và thực hiện dự đoán
+        processed_image = preprocess_image(temp_filepath) # Dùng hàm cũ
+        predictions = model.predict(processed_image)
+        
+        # Lấy chỉ số và tên lớp có độ tin cậy cao nhất
+        predicted_class_index = np.argmax(predictions[0])
+        predicted_class_name = class_names[predicted_class_index]
+        confidence = predictions[0][predicted_class_index] * 100
+
+        # Trả về kết quả dưới dạng JSON
+        return jsonify({
+            'prediction': predicted_class_name,
+            'confidence': f"{confidence:.2f}%"
+        })
+
+    except Exception as e:
+        print(f"Lỗi khi xử lý ảnh từ camera: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # --- Chạy ứng dụng Flask ---
 if __name__ == '__main__':

@@ -1,80 +1,237 @@
-    <!DOCTYPE html>
-    <html lang="vi">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Hệ thống phân loại rác thải AI</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <div class="container">
-            <h1>♻️ Phân loại rác thải thông minh bằng AI ♻️</h1>
-            <p>Vui lòng tải lên hình ảnh rác thải để hệ thống tự động phân loại giúp bạn.</p>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống phân loại rác thải AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>♻️ Phân loại rác thải thông minh bằng AI ♻️</h1>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('upload-tab')">Tải ảnh lên</button>
+            <button class="tab-button" onclick="showTab('camera-tab')">Sử dụng Camera</button>
+        </div>
 
-            <!-- Hiển thị các thông báo từ Flask (ví dụ: lỗi upload) -->
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="flash-message">
-                        {% for message in messages %}
-                            <p>{{ message }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-
-            <form method="post" enctype="multipart/form-data">
-                <input type="file" name="file" id="imageUpload" accept="image/*" required>
-                <input type="submit" value="Phân loại ngay!">
+        <div id="upload-tab" class="tab-content active">
+            <p>Vui lòng tải lên hình ảnh rác thải để hệ thống tự động phân loại.</p>
+            <form method="post" enctype="multipart/form-data" id="upload-form">
+                <input type="file" name="file" id="imageUpload" accept="image/*">
+                <input type="submit" value="Phân loại (Upload)">
             </form>
-
-            <!-- Container for image preview -->
-            <!-- Conditionally display based on whether an image URL is provided by Flask -->
-            <div class="image-preview-container" id="imagePreviewContainer" style="{% if uploaded_image_url %}display: block;{% else %}display: none;{% endif %}">
-                <!-- Set image source from Flask variable if available, otherwise use placeholder -->
-                <img id="imagePreview" src="{{ uploaded_image_url if uploaded_image_url else '#' }}" alt="Xem trước ảnh">
+            <div class="image-preview-container" id="uploadPreviewContainer" style="display: none;">
+                <img id="imagePreview" src="#" alt="Xem trước ảnh">
             </div>
+        </div>
 
-            <!-- Hiển thị kết quả dự đoán sau khi xử lý ảnh -->
-            {% if prediction %}
-                <div class="result">
+        <div id="camera-tab" class="tab-content">
+            <p>Đặt rác thải trước camera và nhấn "Chụp".</p>
+            <div class="camera-controls">
+                <button id="start-cam" class="button-cam-start">Bật Camera</button>
+                <button id="stop-cam" class="button-cam-stop" style="display:none;">Tắt Camera</button>
+            </div>
+            
+            <div class="video-container" id="video-wrapper" style="display:none;">
+                <video id="webcam-feed" autoplay playsinline></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+            </div>
+            
+            <button id="capture-cam" class="button-capture" style="display:none;">
+                <span id="capture-text">Chụp và Phân loại (3)</span>
+            </button>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% if prediction %}
+            <div class="result-wrapper">
+                <h3>Kết quả phân loại:</h3>
+                {% if uploaded_image_url %}
+                <div class="image-preview-container" style="display: block;">
+                    <img src="{{ uploaded_image_url }}" alt="Ảnh đã phân loại">
+                </div>
+                {% endif %}
+                <div class="result" id="prediction-result">
                     <p>Loại rác được nhận diện: <strong>{{ prediction }}</strong></p>
                     <p>Độ tin cậy của mô hình: <strong>{{ confidence }}</strong></p>
                 </div>
-            {% endif %}
+            </div>
+        {% endif %}
+
+        <div id="camera-result-wrapper" class="result-wrapper" style="display: none;">
+            <h3>Kết quả phân loại (Camera):</h3>
+            <div class="image-preview-container" id="capture-preview-container">
+                <img id="capturePreview" src="#" alt="Ảnh đã chụp">
+            </div>
+            <div class="result" id="camera-prediction-result">
+                </div>
+            <div id="loading-spinner" class="spinner" style="display: none;"></div>
         </div>
 
-        <script>
-            // Lấy các phần tử DOM cần thiết
-            const imageUpload = document.getElementById('imageUpload');
-            const imagePreview = document.getElementById('imagePreview');
-            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-
-            // Lắng nghe sự kiện 'change' trên input file
-            imageUpload.addEventListener('change', function(event) {
-                const file = event.target.files[0]; // Lấy file đầu tiên được chọn
-
-                if (file) {
-                    const reader = new FileReader(); // Tạo đối tượng FileReader
-
-                    // Khi FileReader đọc xong file
-                    reader.onload = function(e) {
-                        imagePreview.src = e.target.result; // Đặt nguồn ảnh cho thẻ <img>
-                        imagePreviewContainer.style.display = 'block'; // Hiển thị container ảnh
-                    };
-
-                    // Đọc file dưới dạng URL dữ liệu (base64)
-                    reader.readAsDataURL(file);
-                } else {
-                    // Nếu không có file nào được chọn, ẩn preview
-                    imagePreview.src = '#';
-                    imagePreviewContainer.style.display = 'none';
-                }
+    </div> <script>
+        // --- Logic cho Tab ---
+        function showTab(tabId) {
+            // Ẩn tất cả tab-content
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
             });
+            // Bỏ active tất cả tab-button
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Hiển thị tab được chọn
+            document.getElementById(tabId).classList.add('active');
+            // Đặt active cho nút được chọn
+            event.currentTarget.classList.add('active');
 
-            // Khi trang tải lại sau khi submit, nếu có kết quả, đảm bảo preview hiển thị
-            // (Điều này được xử lý bởi Jinja2 trong style attribute của image-preview-container)
-            // Nếu có uploaded_image_url từ Flask, nó sẽ được hiển thị.
-            // Nếu người dùng chọn file mới, JavaScript sẽ ghi đè lên.
-        </script>
-    </body>
-    </html>
+            // Nếu chuyển sang tab upload, tắt camera
+            if (tabId === 'upload-tab') {
+                stopCameraStream();
+            }
+        }
+
+        // --- Logic cho Upload (giữ nguyên của bạn) ---
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadPreviewContainer = document.getElementById('uploadPreviewContainer');
+
+        imageUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    uploadPreviewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- Logic cho Camera Mới ---
+        const startCamBtn = document.getElementById('start-cam');
+        const stopCamBtn = document.getElementById('stop-cam');
+        const captureCamBtn = document.getElementById('capture-cam');
+        const videoWrapper = document.getElementById('video-wrapper');
+        const videoElement = document.getElementById('webcam-feed');
+        const canvasElement = document.getElementById('canvas');
+        const capturePreview = document.getElementById('capturePreview');
+        const capturePreviewContainer = document.getElementById('capture-preview-container');
+        const cameraResultWrapper = document.getElementById('camera-result-wrapper');
+        const cameraPredictionResult = document.getElementById('camera-prediction-result');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        
+        let stream = null; // Biến để lưu luồng video
+
+        // 1. Bật Camera
+        startCamBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                videoElement.srcObject = stream;
+                videoWrapper.style.display = 'block';
+                startCamBtn.style.display = 'none';
+                stopCamBtn.style.display = 'inline-block';
+                captureCamBtn.style.display = 'inline-block';
+                captureCamBtn.disabled = false;
+                document.getElementById('capture-text').textContent = 'Chụp và Phân loại';
+            } catch (err) {
+                console.error("Lỗi mở camera: ", err);
+                alert("Không thể mở camera. Vui lòng kiểm tra quyền truy cập.");
+            }
+        });
+
+        // 2. Tắt Camera
+        function stopCameraStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                videoWrapper.style.display = 'none';
+                startCamBtn.style.display = 'inline-block';
+                stopCamBtn.style.display = 'none';
+                captureCamBtn.style.display = 'none';
+            }
+        }
+        stopCamBtn.addEventListener('click', stopCameraStream);
+
+        // 3. Chụp ảnh (với đếm ngược)
+        captureCamBtn.addEventListener('click', () => {
+            captureCamBtn.disabled = true; // Vô hiệu hóa nút trong khi đếm ngược
+            loadingSpinner.style.display = 'block'; // Hiển thị vòng xoay
+            cameraResultWrapper.style.display = 'none'; // Ẩn kết quả cũ
+
+            let count = 3;
+            const captureText = document.getElementById('capture-text');
+            captureText.textContent = `Chụp trong... ${count}`;
+
+            const countdown = setInterval(() => {
+                count--;
+                captureText.textContent = `Chụp trong... ${count}`;
+                if (count === 0) {
+                    clearInterval(countdown);
+                    captureText.textContent = 'Đang xử lý...';
+                    takePictureAndPredict();
+                }
+            }, 1000);
+        });
+
+        // 4. Lấy ảnh và Gửi đi
+        async function takePictureAndPredict() {
+            // Vẽ ảnh từ video lên canvas
+            const context = canvasElement.getContext('2d');
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+            // Chuyển canvas thành ảnh Base64
+            const imageDataBase64 = canvasElement.toDataURL('image/jpeg');
+            
+            // Hiển thị ảnh vừa chụp
+            capturePreview.src = imageDataBase64;
+            capturePreviewContainer.style.display = 'block';
+            cameraResultWrapper.style.display = 'block';
+
+            try {
+                // Gửi dữ liệu Base64 đến route mới /predict_cam
+                const response = await fetch('/predict_cam', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image: imageDataBase64 }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi server: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                // Hiển thị kết quả
+                cameraPredictionResult.innerHTML = `
+                    <p>Loại rác được nhận diện: <strong>${result.prediction}</strong></p>
+                    <p>Độ tin cậy của mô hình: <strong>${result.confidence}</strong></p>
+                `;
+
+            } catch (error) {
+                console.error('Lỗi khi dự đoán:', error);
+                cameraPredictionResult.innerHTML = `<p style="color: red;">Lỗi: ${error.message}</p>`;
+            } finally {
+                // Hoàn tất
+                loadingSpinner.style.display = 'none';
+                captureCamBtn.disabled = false;
+                captureText.textContent = 'Chụp và Phân loại';
+            }
+        }
+    </script>
+</body>
+</html>
