@@ -152,7 +152,7 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 @app.route('/predict_cam', methods=['POST'])
 def predict_cam():
     # Nhận dữ liệu JSON từ request
-    data = request.get_json()
+    data = request.get_json()  
     if 'image' not in data:
         return jsonify({'error': 'Không tìm thấy dữ liệu ảnh'}), 400
 

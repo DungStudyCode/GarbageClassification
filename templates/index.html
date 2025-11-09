@@ -133,6 +133,31 @@
         
         let stream = null; // Biến để lưu luồng video
 
+        // ==============================================
+        // CODE MỚI: HÀM ĐỌC VĂN BẢN
+        // ==============================================
+        function speakText(textToSpeak) {
+            // Kiểm tra xem trình duyệt có hỗ trợ không
+            if ('speechSynthesis' in window) {
+                // Dừng mọi giọng nói đang phát (nếu có)
+                window.speechSynthesis.cancel();
+                
+                // Tạo một yêu cầu phát âm mới
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                
+                // Đặt ngôn ngữ là Tiếng Việt
+                utterance.lang = 'vi-VN';
+                utterance.pitch = 1; // Giọng cao/thấp (mặc định 1)
+                utterance.rate = 1;  // Tốc độ (mặc định 1)
+                
+                // Bắt đầu đọc
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.error("Trình duyệt của bạn không hỗ trợ Text-to-Speech.");
+            }
+        }
+        // ==============================================
+
         // 1. Bật Camera
         startCamBtn.addEventListener('click', async () => {
             try {
@@ -216,11 +241,20 @@
 
                 const result = await response.json();
                 
-                // Hiển thị kết quả
+                // Hiển thị kết quả (Code cũ)
                 cameraPredictionResult.innerHTML = `
                     <p>Loại rác được nhận diện: <strong>${result.prediction}</strong></p>
                     <p>Độ tin cậy của mô hình: <strong>${result.confidence}</strong></p>
                 `;
+
+                // ==============================================
+                // CODE MỚI: KÍCH HOẠT GIỌNG NÓI (CAMERA)
+                // ==============================================
+                const predictionText = `Loại rác được nhận diện: ${result.prediction}.`;
+                const confidenceText = `Độ tin cậy: ${result.confidence}.`;
+                speakText(predictionText + " " + confidenceText);
+                // ==============================================
+
 
             } catch (error) {
                 console.error('Lỗi khi dự đoán:', error);
@@ -232,6 +266,35 @@
                 captureText.textContent = 'Chụp và Phân loại';
             }
         }
+
+        // ==============================================
+        // CODE MỚI: KÍCH HOẠT GIỌNG NÓI KHI TẢI TRANG (CHO UPLOAD)
+        // ==============================================
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Kiểm tra xem kết quả từ Flask (cho file upload) có tồn tại không
+            const flaskResult = document.getElementById('prediction-result');
+            
+            if (flaskResult) {
+                try {
+                    // Trích xuất văn bản từ HTML
+                    const predictionText = flaskResult.querySelector('p:nth-child(1)').innerText;
+                    const confidenceText = flaskResult.querySelector('p:nth-child(2)').innerText.replace("của mô hình", ""); // Rút gọn
+                    
+                    // Nối chuỗi và đọc
+                    const fullText = `${predictionText}. ${confidenceText}.`;
+                    
+                    // Thêm một chút độ trễ để đảm bảo trang tải xong
+                    setTimeout(() => {
+                        speakText(fullText);
+                    }, 300); // 300 mili-giây
+                        
+                } catch (e) {
+                    console.error("Lỗi khi đọc kết quả upload: ", e);
+                }
+            }
+        });
+        // ==============================================
+
     </script>
 </body>
 </html>
