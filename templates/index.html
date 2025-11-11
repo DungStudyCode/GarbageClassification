@@ -78,30 +78,20 @@
             <div id="loading-spinner" class="spinner" style="display: none;"></div>
         </div>
 
-    </div> <script>
+    </div> 
+    <script>
         // --- Logic cho Tab ---
         function showTab(tabId) {
-            // Ẩn tất cả tab-content
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            // Bỏ active tất cả tab-button
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
-            
-            // Hiển thị tab được chọn
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            // Đặt active cho nút được chọn
             event.currentTarget.classList.add('active');
-
-            // Nếu chuyển sang tab upload, tắt camera
             if (tabId === 'upload-tab') {
                 stopCameraStream();
             }
         }
 
-        // --- Logic cho Upload (giữ nguyên của bạn) ---
+        // --- Logic cho Upload ---
         const imageUpload = document.getElementById('imageUpload');
         const imagePreview = document.getElementById('imagePreview');
         const uploadPreviewContainer = document.getElementById('uploadPreviewContainer');
@@ -118,7 +108,7 @@
             }
         });
 
-        // --- Logic cho Camera Mới ---
+        // --- Logic cho Camera (Giữ nguyên) ---
         const startCamBtn = document.getElementById('start-cam');
         const stopCamBtn = document.getElementById('stop-cam');
         const captureCamBtn = document.getElementById('capture-cam');
@@ -130,33 +120,7 @@
         const cameraResultWrapper = document.getElementById('camera-result-wrapper');
         const cameraPredictionResult = document.getElementById('camera-prediction-result');
         const loadingSpinner = document.getElementById('loading-spinner');
-        
-        let stream = null; // Biến để lưu luồng video
-
-        // ==============================================
-        // CODE MỚI: HÀM ĐỌC VĂN BẢN
-        // ==============================================
-        function speakText(textToSpeak) {
-            // Kiểm tra xem trình duyệt có hỗ trợ không
-            if ('speechSynthesis' in window) {
-                // Dừng mọi giọng nói đang phát (nếu có)
-                window.speechSynthesis.cancel();
-                
-                // Tạo một yêu cầu phát âm mới
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                
-                // Đặt ngôn ngữ là Tiếng Việt
-                utterance.lang = 'vi-VN';
-                utterance.pitch = 1; // Giọng cao/thấp (mặc định 1)
-                utterance.rate = 1;  // Tốc độ (mặc định 1)
-                
-                // Bắt đầu đọc
-                window.speechSynthesis.speak(utterance);
-            } else {
-                console.error("Trình duyệt của bạn không hỗ trợ Text-to-Speech.");
-            }
-        }
-        // ==============================================
+        let stream = null;
 
         // 1. Bật Camera
         startCamBtn.addEventListener('click', async () => {
@@ -169,10 +133,7 @@
                 captureCamBtn.style.display = 'inline-block';
                 captureCamBtn.disabled = false;
                 document.getElementById('capture-text').textContent = 'Chụp và Phân loại';
-            } catch (err) {
-                console.error("Lỗi mở camera: ", err);
-                alert("Không thể mở camera. Vui lòng kiểm tra quyền truy cập.");
-            }
+            } catch (err) { console.error("Lỗi mở camera: ", err); }
         });
 
         // 2. Tắt Camera
@@ -188,16 +149,14 @@
         }
         stopCamBtn.addEventListener('click', stopCameraStream);
 
-        // 3. Chụp ảnh (với đếm ngược)
+        // 3. Chụp ảnh (Giữ nguyên)
         captureCamBtn.addEventListener('click', () => {
-            captureCamBtn.disabled = true; // Vô hiệu hóa nút trong khi đếm ngược
-            loadingSpinner.style.display = 'block'; // Hiển thị vòng xoay
-            cameraResultWrapper.style.display = 'none'; // Ẩn kết quả cũ
-
+            captureCamBtn.disabled = true; 
+            loadingSpinner.style.display = 'block';
+            cameraResultWrapper.style.display = 'none'; 
             let count = 3;
             const captureText = document.getElementById('capture-text');
             captureText.textContent = `Chụp trong... ${count}`;
-
             const countdown = setInterval(() => {
                 count--;
                 captureText.textContent = `Chụp trong... ${count}`;
@@ -209,58 +168,46 @@
             }, 1000);
         });
 
-        // 4. Lấy ảnh và Gửi đi
+        // 4. Lấy ảnh, Gửi đi VÀ PHÁT ÂM THANH
         async function takePictureAndPredict() {
-            // Vẽ ảnh từ video lên canvas
             const context = canvasElement.getContext('2d');
             canvasElement.width = videoElement.videoWidth;
             canvasElement.height = videoElement.videoHeight;
             context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
-            // Chuyển canvas thành ảnh Base64
             const imageDataBase64 = canvasElement.toDataURL('image/jpeg');
-            
-            // Hiển thị ảnh vừa chụp
             capturePreview.src = imageDataBase64;
             capturePreviewContainer.style.display = 'block';
             cameraResultWrapper.style.display = 'block';
 
             try {
-                // Gửi dữ liệu Base64 đến route mới /predict_cam
                 const response = await fetch('/predict_cam', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: imageDataBase64 }),
                 });
-
-                if (!response.ok) {
-                    throw new Error(`Lỗi server: ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`Lỗi server: ${response.status}`);
+                
                 const result = await response.json();
                 
-                // Hiển thị kết quả (Code cũ)
+                // Hiển thị kết quả (Như cũ)
                 cameraPredictionResult.innerHTML = `
                     <p>Loại rác được nhận diện: <strong>${result.prediction}</strong></p>
                     <p>Độ tin cậy của mô hình: <strong>${result.confidence}</strong></p>
                 `;
 
                 // ==============================================
-                // CODE MỚI: KÍCH HOẠT GIỌNG NÓI (CAMERA)
+                // == CODE MỚI: PHÁT ÂM THANH TỪ SERVER (CAMERA) ==
                 // ==============================================
-                const predictionText = `Loại rác được nhận diện: ${result.prediction}.`;
-                const confidenceText = `Độ tin cậy: ${result.confidence}.`;
-                speakText(predictionText + " " + confidenceText);
+                if (result.audio_url) {
+                    const audio = new Audio(result.audio_url);
+                    audio.play();
+                }
                 // ==============================================
-
 
             } catch (error) {
                 console.error('Lỗi khi dự đoán:', error);
                 cameraPredictionResult.innerHTML = `<p style="color: red;">Lỗi: ${error.message}</p>`;
             } finally {
-                // Hoàn tất
                 loadingSpinner.style.display = 'none';
                 captureCamBtn.disabled = false;
                 captureText.textContent = 'Chụp và Phân loại';
@@ -268,33 +215,33 @@
         }
 
         // ==============================================
-        // CODE MỚI: KÍCH HOẠT GIỌNG NÓI KHI TẢI TRANG (CHO UPLOAD)
+        // == CODE MỚI: PHÁT ÂM THANH KHI TẢI TRANG (CHO UPLOAD) ==
         // ==============================================
         document.addEventListener('DOMContentLoaded', (event) => {
-            // Kiểm tra xem kết quả từ Flask (cho file upload) có tồn tại không
+            // Chúng ta cần lấy audio_url mà Flask đã render
+            // Hãy thêm một thẻ ẩn vào HTML để chứa nó.
+            
+            // Tìm thẻ `prediction-result` (nơi chứa kết quả upload)
             const flaskResult = document.getElementById('prediction-result');
             
-            if (flaskResult) {
+            // Lấy URL âm thanh từ template (Jinja2)
+            // {{ audio_url }} sẽ được Flask render thành giá trị
+            const audioUrlFromFlask = "{{ audio_url | default('None') }}"; 
+
+            if (flaskResult && audioUrlFromFlask !== 'None') {
                 try {
-                    // Trích xuất văn bản từ HTML
-                    const predictionText = flaskResult.querySelector('p:nth-child(1)').innerText;
-                    const confidenceText = flaskResult.querySelector('p:nth-child(2)').innerText.replace("của mô hình", ""); // Rút gọn
-                    
-                    // Nối chuỗi và đọc
-                    const fullText = `${predictionText}. ${confidenceText}.`;
-                    
-                    // Thêm một chút độ trễ để đảm bảo trang tải xong
+                    // Thêm độ trễ nhỏ để đảm bảo trang tải xong
                     setTimeout(() => {
-                        speakText(fullText);
+                        const audio = new Audio(audioUrlFromFlask);
+                        audio.play();
                     }, 300); // 300 mili-giây
                         
                 } catch (e) {
-                    console.error("Lỗi khi đọc kết quả upload: ", e);
+                    console.error("Lỗi khi phát âm thanh upload: ", e);
                 }
             }
         });
         // ==============================================
-
     </script>
 </body>
 </html>
