@@ -1,0 +1,9 @@
+# Bỏ thư mục môi trường ảo
+.venv/
+venv/
+env/
+
+# Bỏ file upload, audio, model nếu bạn không muốn commit
+uploads/
+static/audio/
+*.h5
