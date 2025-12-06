@@ -1,0 +1,50 @@
+// Quy trình Xử lý Phân loại Rác
+digraph {
+	rankdir=TB
+	dpi=300
+	size="6.5,10"
+	ratio=fill
+	nodesep=0.8
+	ranksep=0.5
+	node [fontname=Arial fontsize=11 margin="0.15,0.1" shape=rect style="rounded,filled"]
+	A [label="Người dùng / Webcam
+(Input Image)" color="#1565C0" fillcolor="#E3F2FD" penwidth=1.5 shape=ellipse]
+	B [label="Server Flask
+(Nhận Request)" fillcolor="#F5F5F5"]
+	C [label="Tiền xử lý ảnh
+(Resize 224x224, Scale 0-1)" fillcolor="#FFF3E0"]
+	D [label="Mô hình AI
+(MobileNetV2)" color="#2E7D32" fillcolor="#E8F5E9" shape=component]
+	E [label="Dự đoán (Inference)
+Vector xác suất" fillcolor="#F5F5F5"]
+	F [label="Lấy nhãn có
+xác suất cao nhất" fillcolor="#F5F5F5"]
+	G [label="Score >= 70% ?" color="#FBC02D" fillcolor="#FFF9C4" height=1.0 shape=diamond style=filled width=1.5]
+	H [label="CHẤP NHẬN
+(Giữ nguyên nhãn)" color="#2E7D32" fillcolor="#C8E6C9" width=2.0]
+	I [label="TỪ CHỐI
+(Gán \"TRASH\")" color="#C62828" fillcolor="#FFCDD2" width=2.0]
+	J [label="Mapping nhãn
+Tiếng Việt" fillcolor="#F3E5F5"]
+	K [label="Tạo âm thanh
+(Google TTS)" fillcolor="#E1BEE7"]
+	L [label="Phản hồi (Response)
+{ Ảnh, Tên, Audio }" color="#1565C0" fillcolor="#E3F2FD" penwidth=1.5 shape=ellipse]
+	A -> B
+	B -> C
+	C -> D
+	D -> E
+	E -> F
+	F -> G
+	G -> H [label="Đúng (Yes)" color=green fontcolor=green]
+	G -> I [label="Sai (No)" color=red fontcolor=red]
+	H -> J
+	I -> J
+	J -> K
+	K -> L
+	{
+		rank=same
+		H
+		I
+	}
+}
