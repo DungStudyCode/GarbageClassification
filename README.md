@@ -198,29 +198,29 @@ b. Cơ chế hoạt động: Transfer Learning với MobileNetV2
 
     Hình 2.3: Hình ảnh minh họa Sơ đồ Kiến trúc Mô hình.
 
-	Tầng Base (Feature Extractor - Bộ trích xuất đặc trưng)\
+Tầng Base (Feature Extractor - Bộ trích xuất đặc trưng)
   
-	Kiến trúc nền tảng: Sử dụng mạng MobileNetV2.
+Kiến trúc nền tảng: Sử dụng mạng MobileNetV2.
   
 	Đặc điểm kỹ thuật: Đây là kiến trúc CNN được Google tối ưu hóa cho các nền tảng di động, sử dụng các khối Depthwise Separable Convolution (Tích chập tách biệt chiều sâu) giúp giảm đáng kể số lượng tham số và khối lượng tính toán so với các mạng truyền thống như VGG16 hay ResNet, nhưng vẫn duy trì độ chính xác cao.
   
-	Cấu hình khởi tạo:
+Cấu hình khởi tạo:
   
 	weights='imagenet': Mô hình được khởi tạo với bộ trọng số đã huấn luyện trên tập dữ liệu ImageNet (chứa 1.4 triệu ảnh với 1000 lớp vật thể). Điều này giúp mô hình đã có sẵn khả năng nhận diện các đường nét, hình khối và kết cấu vật thể cơ bản.
   
 	include_top=False: Loại bỏ lớp phân loại 1000 lớp gốc của ImageNet, chỉ giữ lại phần thân (convolutional base) để làm nền tảng trích xuất đặc trưng.
   
-	Cơ chế đóng băng (Freezing):
+Cơ chế đóng băng (Freezing):
   
 	Tham số base_model.trainable = False được thiết lập để "đóng băng" toàn bộ các lớp của MobileNetV2.
   
 	Mục đích: Ngăn chặn việc cập nhật trọng số của các lớp này trong quá trình huấn luyện (Backpropagation). Việc này đảm bảo các đặc trưng thị giác tổng quát đã học được từ ImageNet không bị phá vỡ bởi dữ liệu mới, đồng thời giảm đáng kể thời gian huấn luyện.
 
-	Tầng Custom Head (Classifier - Bộ phân loại tùy chỉnh)
+Tầng Custom Head (Classifier - Bộ phân loại tùy chỉnh)
   
-  Đây là phần được thiết kế mới hoàn toàn để thay thế lớp đầu ra đã bị loại bỏ, chuyên biệt cho bài toán phân loại 6 loại rác.
+ 	Đây là phần được thiết kế mới hoàn toàn để thay thế lớp đầu ra đã bị loại bỏ, chuyên biệt cho bài toán phân loại 6 loại rác.
 
-	Lớp 1: GlobalAveragePooling2D (GAP)
+Lớp 1: GlobalAveragePooling2D (GAP)
   
 	Nguyên lý: Lớp này tính toán giá trị trung bình của từng bản đồ đặc trưng (feature map) kích thước H × W đầu ra từ MobileNetV2, biến đổi nó thành một giá trị duy nhất.
   
@@ -228,13 +228,13 @@ b. Cơ chế hoạt động: Transfer Learning với MobileNetV2
   
 	Ưu điểm: Giúp giảm thiểu số lượng tham số cần huấn luyện ở lớp Dense tiếp theo, từ đó ngăn chặn hiệu quả hiện tượng quá khớp (Overfitting) và giúp mô hình bền vững hơn với các dịch chuyển không gian của vật thể trong ảnh.
   
-	Lớp 2: Dense (Fully Connected Layer)
+Lớp 2: Dense (Fully Connected Layer)
   
 	Cấu hình: 128 nơ-ron (units), hàm kích hoạt ReLU (Rectified Linear Unit).
   
 	Chức năng: Đây là lớp học sâu trung gian. Nó có nhiệm vụ tổng hợp các đặc trưng thị giác từ lớp GAP và học các mối quan hệ phi tuyến tính phức tạp để phân biệt các đặc điểm riêng của rác (ví dụ: sự khác biệt về kết cấu giữa "Bìa carton" nhám và "Giấy" phẳng).
   
-	Lớp 3: Output Layer (Lớp đầu ra)
+Lớp 3: Output Layer (Lớp đầu ra)
   
 	Cấu hình: Số lượng nơ-ron bằng số lớp cần phân loại (NUM_CLASSES = 6).
   
@@ -274,9 +274,9 @@ a. Hàm mất mát (Loss Function): Categorical Crossentropy
 
 	Lý do lựa chọn: Bài toán yêu cầu phân loại hình ảnh vào một trong K=6 nhóm nhãn rời rạc (Metal, Paper, Glass, Plastic, Cardboard, Trash). Đây là bài toán phân loại đa lớp (Multi-class Classification), do đó categorical_crossentropy là lựa chọn tiêu chuẩn.
   
-	Cơ chế toán học:
+Cơ chế toán học:
   
-  Hàm này đo lường "khoảng cách" giữa hai phân phối xác suất: phân phối dự đoán (yi) ̂:(từ Softmax) và phân phối thực tế y (đã được mã hóa One-hot).
+  	Hàm này đo lường "khoảng cách" giữa hai phân phối xác suất: phân phối dự đoán (yi) ̂:(từ Softmax) và phân phối thực tế y (đã được mã hóa One-hot).
 
   Công thức tổng quát cho một mẫu dữ liệu:
 
@@ -326,7 +326,7 @@ c. Cấu hình Siêu tham số (Hyperparameters Configuration)
 
 Bước 1: Tiếp nhận và Tiền xử lý (Input Processing)
 
-  Hệ thống được thiết kế để linh hoạt xử lý dữ liệu từ hai nguồn:
+  	Hệ thống được thiết kế để linh hoạt xử lý dữ liệu từ hai nguồn:
 
 	Nguồn dữ liệu:
   
@@ -342,7 +342,7 @@ Bước 1: Tiếp nhận và Tiền xử lý (Input Processing)
   
 Bước 2: Suy luận với "Logic Nghiêm ngặt" (Strict Inference Logic)
 
-  Để đảm bảo độ tin cậy và tránh hiện tượng "ảo giác" (hallucination) của AI, hệ thống áp dụng cơ chế kiểm soát ngưỡng:
+  	Để đảm bảo độ tin cậy và tránh hiện tượng "ảo giác" (hallucination) của AI, hệ thống áp dụng cơ chế kiểm soát ngưỡng:
 
 	Vector xác suất: Mô hình MobileNetV2 trả về xác suất cho từng nhãn.
   
@@ -358,7 +358,7 @@ Bước 2: Suy luận với "Logic Nghiêm ngặt" (Strict Inference Logic)
   
 Bước 3: Phản hồi Đa phương thức (Multimodal Output)
 
-  Kết quả trả về không chỉ là văn bản khô khan mà còn tích hợp âm thanh hỗ trợ tiếp cận (Accessibility):
+  	Kết quả trả về không chỉ là văn bản khô khan mà còn tích hợp âm thanh hỗ trợ tiếp cận (Accessibility):
 
 	Bản địa hóa (Localization): Kết quả gốc (Tiếng Anh) được ánh xạ sang Tiếng Việt thông qua từ điển TRANSLATION_MAP.
   
