@@ -28,7 +28,7 @@ MODEL_PATH = 'trash_classifier_mobilenetv2.h5'
 LABELS_PATH = 'labels.txt'
 IMG_SIZE = (224, 224)
 
-# --- Tải mô hình và nhãn ---
+# --- Tải mô hình và nhãn --- 
 model = None
 class_names = []
 try:

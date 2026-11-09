@@ -4,11 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ thống phân loại rác thải AI</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♻️</text></svg>">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* CSS nội bộ để chỉnh style cho logo lớn (nếu chưa có trong style.css) */
+        .main-logo {
+            text-align: center;
+            font-size: 80px; /* Kích thước logo lớn */
+            margin-bottom: 10px;
+            animation: spin 10s linear infinite; /* Hiệu ứng xoay nhẹ nếu muốn */
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>♻️ Phân loại rác thải bằng hình ảnh tích hợp AI ♻️</h1>
+        
+        <div class="main-logo">♻️</div>
+
+        <h1>Phân loại rác thải bằng hình ảnh tích hợp AI</h1>
         
         <div class="tabs">
             <button class="tab-button active" onclick="showTab('upload-tab')">Tải ảnh lên</button>
@@ -218,30 +234,20 @@
         // == CODE MỚI: PHÁT ÂM THANH KHI TẢI TRANG (CHO UPLOAD) ==
         // ==============================================
         document.addEventListener('DOMContentLoaded', (event) => {
-            // Chúng ta cần lấy audio_url mà Flask đã render
-            // Hãy thêm một thẻ ẩn vào HTML để chứa nó.
-            
-            // Tìm thẻ `prediction-result` (nơi chứa kết quả upload)
             const flaskResult = document.getElementById('prediction-result');
-            
-            // Lấy URL âm thanh từ template (Jinja2)
-            // {{ audio_url }} sẽ được Flask render thành giá trị
             const audioUrlFromFlask = "{{ audio_url | default('None') }}"; 
 
             if (flaskResult && audioUrlFromFlask !== 'None') {
                 try {
-                    // Thêm độ trễ nhỏ để đảm bảo trang tải xong
                     setTimeout(() => {
                         const audio = new Audio(audioUrlFromFlask);
                         audio.play();
-                    }, 300); // 300 mili-giây
-                        
+                    }, 300); 
                 } catch (e) {
                     console.error("Lỗi khi phát âm thanh upload: ", e);
                 }
             }
         });
-        // ==============================================
     </script>
 </body>
 </html>

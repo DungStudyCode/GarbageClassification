@@ -1,25 +1,14 @@
 # train_model.py
 import tensorflow as tf #Nhúng toàn bộ thư viện TensorFlow
+# pyrefly: ignore[missing-import]
 from tensorflow.keras.applications import MobileNetV2 
-#Nhập mô hình MobileNetV2 có sẵn trong Keras, thường dùng để fine-tune hoặc transfer learning. Là mô hình nhẹ, hiệu quả cho nhận diện ảnh
-
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
-# Dense: Tạo lớp fully-connected
-#GlobalAveragePooling2D: Dùng để giảm chiều dữ liệu 2D còn 1 vector – thay vì flatten, nó lấy trung bình toàn bộ vùng mỗi kênh
-
 from tensorflow.keras.models import Model # Dùng để tạo mô hình tùy chỉnh bằng cách kết nối các lớp đầu vào, giữa và đầu ra
+# pyrefly: ignore[missing-import]
 from tensorflow.keras.preprocessing.image import ImageDataGenerator 
-#Tạo dữ liệu hình ảnh huấn luyện với augmentation (phóng đại, xoay, zoom, flip, chuẩn hóa...)
+import os #Xử lý đường dẫn, thư mục hình ảnh huấn luyện/test/val, kiểm tra file tồn tại
 
-import os #Xử lý đường dẫn, thư mục hình ảnh huấn luyện/test/val, kiểm tra file
-
-# --- Cấu hình Dataset và Mô hình ---
-# ĐƯỜNG DẪN ĐẾN THƯ MỤC GỐC CỦA DATASET KAGGLE SAU KHI GIẢI NÉN
-# Dựa trên cấu trúc thư mục 'train' và 'test'
-# Vì nằm trực tiếp trong thư mục gốc của dự án.
-# Vì vậy, DATASET_ROOT_DIR nên là một chuỗi rỗng.
 DATASET_ROOT_DIR = '' 
-
 # Đường dẫn đến các thư mục con train và test trong dataset
 # Sử dụng os.path.join để đảm bảo đường dẫn đúng trên mọi hệ điều hành
 TRAIN_DIR = os.path.join(DATASET_ROOT_DIR, 'train') 
